@@ -11,24 +11,12 @@
 #include <unistd.h>
 #include <signal.h>
 
-//added by me
-#include<string.h>
-///////
 typedef short bool;
 #define true 1
 #define false 1
 
 #define SHKEY 300
 
-//added by me////////////////// 
-struct process
-{
-    int arrivaltime;
-    int priority;
-    int runningtime;
-    int id;
-};
-//////////////////////////
 
 ///==============================
 //don't mess with this variable//
@@ -49,7 +37,6 @@ int getClk()
 */
 void initClk()
 {
-
     int shmid = shmget(SHKEY, 4, 0444);
     while ((int)shmid == -1)
     {
