@@ -8,7 +8,7 @@ void clearResources(int);
 
 int main(int argc, char *argv[])
 {
-    //signal(SIGINT, clearResources);
+    signal(SIGINT, clearResources);
     // TODO Initialization
     // 1. Read the input files.
     FILE *fileptr = fopen("processes.txt", "r");
@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
     }
 
     // 6. Send the information to the scheduler at the appropriate time.
-    key_t msgqid = msgget(MSGQKEY, 0666 |IPC_CREAT); // or msgget(12613, IPC_CREATE | 0644)
+    key_t msgqid = msgget(MSGQKEY, 0666 | IPC_CREAT); // or msgget(12613, IPC_CREATE | 0644)
     if (msgqid == -1)
     {
         perror("Error in create");
@@ -124,17 +124,19 @@ int main(int argc, char *argv[])
     printf("msgqid = %d\n", msgqid);
 
     initClk();
-    int time=0;
+    int time = 0;
     while (1)
     {
         //sleep(1); //to synch with clk
-        if(getClk()<=time){ //to wait for next clk cycle
+        if (getClk() <= time)
+        { //to wait for next clk cycle
             continue;
-        }else
-        {
-            time=getClk();
         }
-        
+        else
+        {
+            time = getClk();
+        }
+
         // printf("time is %d \n", getClk());
         int j;
         struct process Process;
@@ -146,8 +148,8 @@ int main(int argc, char *argv[])
                 int send_val = msgsnd(msgqid, &Process, sizeof(Process), !IPC_NOWAIT);
                 if (send_val == -1)
                     perror("Errror in send");
-                else
-                    printf("time %d process #%d sent\n", time, Process.id);
+                // else
+                //     printf("time %d process #%d sent\n", time, Process.id);
             }
         }
     }
@@ -159,4 +161,8 @@ int main(int argc, char *argv[])
 void clearResources(int signum)
 {
     //TODO Clears all resources in case of interruption
+    key_t msgqid = msgget(MSGQKEY, IPC_CREAT | 0666); // or msgget(12613, IPC_CREATE | 0644)
+    //deleted msg queue between process generator and scheduler
+    msgctl(msgqid, IPC_RMID, (struct msqid_ds *)0);
+    exit(0);
 }

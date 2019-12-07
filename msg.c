@@ -72,3 +72,7 @@ int main()
     }
     return 0;
 }
+
+void CleanResources(int signum){
+    
+}
