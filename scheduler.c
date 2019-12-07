@@ -22,13 +22,16 @@ void remove_element(struct ProcessPCBEntry *array, int index, int array_length)
 
 void ResizeArr(struct ProcessPCBEntry *array, int ArrayLength)
 {
-    if(ArrayLength>1)
-    array = realloc(array, (ArrayLength - 1) * sizeof(struct ProcessPCBEntry));
+    if (ArrayLength > 1)
+    {
+        printf("REALLOCINGGG length is %d\n", ArrayLength);
+        array = realloc(array, (ArrayLength - 1) * sizeof(struct ProcessPCBEntry));
+    }
 }
 
 int main(int argc, char *argv[])
 {
-    signal(SIGINT,CleanResources);
+    signal(SIGINT, CleanResources);
     initClk();
 
     int NumProcesses = 0;          //start with 0 processes
@@ -37,7 +40,7 @@ int main(int argc, char *argv[])
 
     //initialize the msg queue to recv processes
     //from process generator
-    key_t msgqid = msgget(MSGQKEY,  IPC_CREAT| 0666); // or msgget(12613, IPC_CREATE | 0644)
+    key_t msgqid = msgget(MSGQKEY, IPC_CREAT | 0666); // or msgget(12613, IPC_CREATE | 0644)
     if (msgqid == -1)
     {
         perror("Error in create");
@@ -56,13 +59,6 @@ int main(int argc, char *argv[])
 
         NumProcesses++;
 
-        if (NumProcesses == 1)
-            PCB = (struct ProcessPCBEntry *)malloc(sizeof(struct process));
-        else
-        {
-            ResizeArr(PCB, NumProcesses);
-        }
-
         //fork children upon arrival
         int pid = fork();
         if (pid == 0)
@@ -73,7 +69,7 @@ int main(int argc, char *argv[])
         int time = getClk();
         int stat;
         //init shared memory with process
-        key_t shmid = shmget(pid, 4,  IPC_CREAT| 0666);
+        key_t shmid = shmget(pid, 4, IPC_CREAT | 0666);
         if ((long)shmid == -1)
         {
             perror("Error in creating shm!");
@@ -85,24 +81,32 @@ int main(int argc, char *argv[])
             perror("Error in attaching the shm in process!");
             exit(-1);
         }
-         (*shmaddr)=CurrentProcess.runningtime;
+        (*shmaddr) = CurrentProcess.runningtime;
 
         waitpid(pid, 0, 0);
-        printf("Process %d finished after %d\n", CurrentProcess.id,time - getClk());
-
+        printf("Process %d finished after %d\n", CurrentProcess.id, getClk() - time);
+        
+        //remove process from PCB
+        if (NumProcesses == 1)
+            PCB = (struct ProcessPCBEntry *)malloc(sizeof(struct process));
+        else
+        {
+            ResizeArr(PCB, NumProcesses);
+        }
         //init process in PCB
-        PCB[NumProcesses - 1].process = CurrentProcess;
-        PCB[NumProcesses - 1].pid = pid;
-        PCB[NumProcesses - 1].state = Running;
-        PCB[NumProcesses - 1].TimeExecution = 0;
-        PCB[NumProcesses - 1].TimeRemaining = CurrentProcess.runningtime;
-        PCB[NumProcesses - 1].TimeWait = 0;
+        // PCB[NumProcesses - 1].process = CurrentProcess;
+        // PCB[NumProcesses - 1].pid = pid;
+        // PCB[NumProcesses - 1].state = Running;
+        // PCB[NumProcesses - 1].TimeExecution = 0;
+        // PCB[NumProcesses - 1].TimeRemaining = CurrentProcess.runningtime;
+        // PCB[NumProcesses - 1].TimeWait = 0;
         //  kill(childpid,SIGKILL);  //to kill(suspend child process)
     }
 
     //upon termination release the clock resources
     destroyClk(false);
 }
-void CleanResources(int signum){
-exit(0);
+void CleanResources(int signum)
+{
+    exit(0);
 }
