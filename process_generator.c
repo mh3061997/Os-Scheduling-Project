@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
         perror("Error in create");
         exit(-1);
     }
-    printf("msgqid = %d\n", msgqid);
+    //printf("msgqid = %d\n", msgqid);
 
     initClk();
     int time = 0;

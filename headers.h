@@ -19,6 +19,7 @@ typedef short bool;
 #define false 0
 
 #define SHKEY 300
+#define SHMProGenSched 350
 #define MSGQKEY 200
 
 //added by me////////////////// 
