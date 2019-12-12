@@ -40,11 +40,12 @@ int main(int argc, char *argv[])
     {
         //invalid input exit
         //to do
+        printf("Algo Num Invalid");
     }
 
     // 3. Initiate and create the scheduler and clock processes.
-    int pid = fork();
-    if (pid == 0)
+    int PidClk = fork();
+    if (PidClk == 0)
     {
         //child
         execvp("./clk.out", NULL); //child executes clk process
@@ -54,16 +55,21 @@ int main(int argc, char *argv[])
         //parent
     }
 
-    pid = fork();
-    if (pid == 0)
+    int PidScheduler = fork();
+    if (PidScheduler == 0)
     {
-        //child
-        execvp("./scheduler.out", NULL); //child executes scheduler process
+        char temp[sizeof(int)*4]; //up to 4 digits of input 
+       sprintf(temp,"%d",AlgoUsed); //convert int to string 
+       //printf("algo used sprintf %s\n",temp);
+        char *argv[] = {"./scheduler.out",temp, NULL};
+        execvp("./scheduler.out", argv); //child executes scheduler process
     }
-    else
-    {
-        //parent
-    }
+
+    // sleep(5);
+    // kill(PidScheduler, SIGCHLD);
+    // sleep(5);
+    // kill(PidScheduler, SIGCHLD);
+    //sleep(INT_MAX);
 
     // 4. Use this function after creating the clock process to initialize clock
     //initClk();

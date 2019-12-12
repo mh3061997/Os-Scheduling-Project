@@ -11,6 +11,7 @@ struct ProcessPCBEntry
     int TimeWait;
     int TimeExecution;
     int TimeRemaining;
+    
 };
 int HighestPriority = -1;
 void CleanResources(int signum);
@@ -31,12 +32,13 @@ void ResizeArr(struct ProcessPCBEntry *array, int ArrayLength)
         array = (struct ProcessPCBEntry *)realloc(array, sizeof(struct ProcessPCBEntry) * ArrayLength);
     }
 }
-
+void receivedfn(int signum);
 int main(int argc, char *argv[])
 {
     signal(SIGINT, CleanResources);
     initClk();
-
+    //int AlgoUsed=atoi(argv[1]);
+    printf("Algo used is %d\n",atoi(argv[1]));
     int NumProcesses = 0;          //start with 0 processes
     struct process ReceivedProcess; //process placeholder
     struct process RunningProcess; //process placeholder
@@ -51,107 +53,50 @@ int main(int argc, char *argv[])
         perror("Error in create");
         exit(-1);
     }
-    //printf("scheduler msgqid = %d\n", msgqid);
-    //init PCB
-    PCB = (struct ProcessPCBEntry *)malloc(sizeof(struct ProcessPCBEntry) * (NumProcesses + 1));
-    bool isrunning = false;
-    key_t shmid;
-    int *shmaddr;
-    int time;
+   
     while (1)
     {
-
+        // signal(SIGCHLD,receivedfn);
+        printf("RECEIVED1\n");
         int rec_val = msgrcv(msgqid, &ReceivedProcess, sizeof(struct process), 0, !IPC_NOWAIT);
-
         if (rec_val == -1)
             perror("Error in receive");
         else
             printf("Time %d Process #%d received  \n", getClk(), ReceivedProcess.id);
 
         NumProcesses++;
-        if (NumProcesses != 1)
-        {
-            printf("Expanding PCB Numprocess %d\n", NumProcesses);
-            ResizeArr(PCB, NumProcesses);
-        }
-        //init process in PCB
-        PCB[NumProcesses - 1].process = ReceivedProcess;
-        PCB[NumProcesses - 1].state = Running;
-        PCB[NumProcesses - 1].TimeExecution = 0;
-        PCB[NumProcesses - 1].TimeRemaining = ReceivedProcess.runningtime;
-        PCB[NumProcesses - 1].TimeWait = 0;
-
-        //search for process with highest priority
-        int k;
-        for (k = 0; k < NumProcesses; k++)
-        {
-
-            if (PCB[k].process.priority > HighestPriority)
-            {
-                HighestPriority = PCB[k].process.priority;
-                NextProcess = PCB[k].process;
-            }
-        }
-
-        //printf("Next Process #%d\n", ReceivedProcess.id);
-
-        if (isrunning == false)
-        {
-            RunningProcess=NextProcess; //set next process in queue as running
-            //fork children upon arrival
-            isrunning == true;
-            int pid = fork();
-            PCB[NumProcesses - 1].pid = pid;
-
-            if (pid == 0)
+                 printf("RECEIVED2\n");
+                  
+            int pid=fork();
+             if (pid == 0)
             {
                 //child
-                execvp("./process.out", NULL); //child executes process
+                 char temp[sizeof(int)*4]; //up to 4 digits of input 
+                 sprintf(temp,"%d",5);
+                char* argv[]={"./process.out",temp,NULL};
+                execvp(argv[0],argv); //child executes process
             }
-            time = getClk(); //to know how much time process took
-            int stat;        //unused exit code
+        // sleep(1);
+        // kill(pid,SIGSTOP);
+        // printf("Stopped\n");
+        // sleep(10);
+        // kill(pid,SIGCONT);
+        // printf("Continued\n");
+        // sleep(INT_MAX);
 
-            //init shared memory with process
-            shmid = shmget(pid, 4, IPC_CREAT | 0666);
-            if ((long)shmid == -1)
-            {
-                perror("Error in creating shm!");
-                exit(-1);
-            }
-            shmaddr = (int *)shmat(shmid, (void *)0, 0);
-            if ((long)shmaddr == -1)
-            {
-                perror("Error in attaching the shm in process!");
-                exit(-1);
-            }
-            (*shmaddr) = RunningProcess.runningtime;
-
-            //should not wait bec. schedule must be available to recv processes if arrived
-            //waitpid(pid, stat, 0); //Non Preemptive so wait
-        }
-        //if process finished
-        int RemainingTimeForRunningProcess = (*shmaddr);
-        printf("Remaining time %d\n", RemainingTimeForRunningProcess);
-        if (RemainingTimeForRunningProcess < 1)
-        {
-            isrunning = false;
-            int timetook = getClk() - time;
-            printf("Process %d finished after %d\n", RunningProcess.id, timetook);
-            NumProcesses--;
-            //remove process from PCB
-            if (NumProcesses > 1)
-            {
-                printf("Shrinking PCB Numprocess %d", NumProcesses);
-                ResizeArr(PCB, NumProcesses);
-            }
-        }
-        //  kill(childpid,SIGKILL);  //to kill(suspend child process)
+    
     }
-
     //upon termination release the clock resources
     destroyClk(false);
 }
+void receivedfn(int signum){
+    printf("received sigchild\n");
+}
 void CleanResources(int signum)
 {
+     //TODO Clears all resources in case of interruption
+    key_t msgqid = msgget(MSGQKEY, IPC_CREAT | 0666); // or msgget(12613, IPC_CREATE | 0644)
+    //deleted msg queue between process generator and scheduler
+    msgctl(msgqid, IPC_RMID, (struct msqid_ds *)0);
     exit(0);
 }
