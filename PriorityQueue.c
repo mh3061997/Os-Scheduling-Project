@@ -46,6 +46,36 @@ void pop(Node **head)
 	free(temp);
 }
 
+
+void deleteNode(Node **head_ref, int key) 
+{ 
+    // Store head node 
+     Node* temp = *head_ref, *prev; 
+  
+    // If head node itself holds the key to be deleted 
+    if (temp != NULL && temp->data == key) 
+    { 
+        *head_ref = temp->next;   // Changed head 
+        free(temp);               // free old head 
+        return; 
+    } 
+  
+    // Search for the key to be deleted, keep track of the 
+    // previous node as we need to change 'prev->next' 
+    while (temp != NULL && temp->data != key) 
+    { 
+        prev = temp; 
+        temp = temp->next; 
+    } 
+  
+    // If key was not present in linked list 
+    if (temp == NULL) return; 
+  
+    // Unlink the node from linked list 
+    prev->next = temp->next; 
+  
+    free(temp);  // Free memory 
+} 
 // Function to push according to priority
 void push(Node **head, int d, int p)
 {
@@ -115,20 +145,20 @@ int main()
 	push(&pq, 5, 2);
 	push(&pq, 6, 3);
 	push(&pq, 7, 0);
-
+	deleteNode(&pq,7);
 	while (!isEmpty(&pq))
 	{
 		printf("%d ", peek(&pq));
 		pop(&pq);
 	}
-	push(&pq, 4, 1);
-	push(&pq, 5, 2);
-	push(&pq, 6, 3);
-	push(&pq, 7, 0);
-	while (!isEmpty(&pq))
-	{
-		printf("%d ", peek(&pq));
-		pop(&pq);
-	}
+	// push(&pq, 4, 1);
+	// push(&pq, 5, 2);
+	// push(&pq, 6, 3);
+	// push(&pq, 7, 0);
+	// while (!isEmpty(&pq))
+	// {
+	// 	printf("%d ", peek(&pq));
+	// 	pop(&pq);
+	// }
 	return 0;
 }

@@ -28,7 +28,6 @@ int main(int argc, char *argv[])
 {
     signal(SIGINT, CleanResources);
     initClk();
-    PriotityQueue = (struct process *)malloc(sizeof(struct process)*50);
 
     //PriotityQueue=NULL;
     //int AlgoUsed=atoi(argv[1]);
@@ -53,7 +52,7 @@ int main(int argc, char *argv[])
         if (rec_val == -1)
         {
             printf("At time %d Process %d finished\n",getClk(),RunningProcess.id);
-           // pop(&PriotityQueue);
+            deleteProcess(&PriotityQueue,RunningProcess);
             isrunning = false;
         }
 
@@ -81,7 +80,7 @@ int main(int argc, char *argv[])
             //printf("queue %d\n", (*PriotityQueue).id);
             RunningProcess = *(peek(&PriotityQueue));
             printf("after peek %d\n", RunningProcess.id);
-             pop(&PriotityQueue);
+             //pop(&PriotityQueue);
             int pid = fork();
             if (pid == 0)
             {

@@ -72,39 +72,60 @@ struct process *peek(struct process **head)
 // highest priority from the list
 void pop(struct process **head)
 {
+    if (isEmpty(head))
+    {
+        printf("queue is empty !!!!\n");
+        return;
+    }
     struct process *temp = *head;
     (*head) = (*head)->next;
     free(temp);
 }
 
-void deleteProcess(struct process **head, struct process p)
-{
-
-    if ((*head)->id == p.id)
-    { //if head is going to be deletedd
-        pop(head);
-    }
-    else
-    {
-        struct process *iter = (*head);
-        while (iter->next != NULL)
-        {
-            if (iter->id == p.id)
-            {
-                iter = iter->next;
-            }
-            iter = iter->next;
-        }
-    }
-}
+void deleteProcess(struct process  **head_ref,struct process p) 
+{ 
+    printf("Deleting Process #%d\n",p.id);
+    // Store head node 
+     struct process* temp = *head_ref, *prev; 
+  
+    // If head node itself holds the key to be deleted 
+    if (temp != NULL && temp->id == p.id) 
+    { 
+        *head_ref = temp->next;   // Changed head 
+        free(temp);               // free old head 
+        return; 
+    } 
+  
+    // Search for the key to be deleted, keep track of the 
+    // previous node as we need to change 'prev->next' 
+    while (temp != NULL && temp->id == p.id) 
+    { 
+        prev = temp; 
+        temp = temp->next; 
+    } 
+  
+    // If key was not present in linked list 
+    if (temp == NULL) return; 
+  
+    // Unlink the node from linked list 
+    prev->next = temp->next; 
+  
+    free(temp);  // Free memory 
+} 
 // Function to push according to priority
 void push(struct process **head, struct process p)
 {
-    struct process *start = (*head);
 
     // Create new struct process
     struct process *temp = newprocess(p);
-    printf("Pushing id %d\n",temp->id);
+    printf("Pushing Process #%d\n",temp->id);
+    if ((*head) == NULL)
+    {
+        //printf("it wont be empty any more\n");
+        (*head) = temp;
+        return;
+    }
+    struct process *start = (*head);
 
     // Special Case: The head of list has lesser
     // priority than new struct process. So insert new
@@ -134,10 +155,10 @@ void push(struct process **head, struct process p)
     }
 }
 
-int isEmpty(struct process** head) 
-{ 
-	return (*head) == NULL; 
-} 
+int isEmpty(struct process **head)
+{
+    return (*head) == NULL;
+}
 //
 //////////////////////////
 
