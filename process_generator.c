@@ -108,14 +108,23 @@ int main(int argc, char *argv[])
     int i;
     for (i = 0; i < NumProcesses; i++)
     {
+        //infile
         fscanf(fileptr, "%d", &Pdata); //read id
         ProcessArr[i].id = Pdata;
         fscanf(fileptr, "%d", &Pdata); //read arrival time
         ProcessArr[i].arrivaltime = Pdata;
         fscanf(fileptr, "%d", &Pdata); //read runtime
         ProcessArr[i].runningtime = Pdata;
+        ProcessArr[i].TimeRemaining =Pdata;
+
         fscanf(fileptr, "%d", &Pdata); //read priority
         ProcessArr[i].priority = Pdata;
+        //to be updated by scheduler
+         ProcessArr[i].pid = -1;
+         ProcessArr[i].state =Suspended;
+         ProcessArr[i].TimeWait = 0;
+         ProcessArr[i].TimeExecution = 0;
+         ProcessArr[i].next=NULL;
 
         printf("process%d\t%d\t%d\t%d\t%d\n", i, ProcessArr[i].id, ProcessArr[i].arrivaltime, ProcessArr[i].runningtime, ProcessArr[i].priority);
     }
@@ -151,11 +160,11 @@ int main(int argc, char *argv[])
             if (ProcessArr[j].arrivaltime == time)
             {
                 Process = ProcessArr[j];
-                int send_val = msgsnd(msgqid, &Process, sizeof(Process), !IPC_NOWAIT);
+                int send_val = msgsnd(msgqid, &Process, sizeof(struct process), !IPC_NOWAIT);
                 if (send_val == -1)
                     perror("Errror in send");
                 // else
-                //     printf("time %d process #%d sent\n", time, Process.id);
+                   //  printf("time %d process #%d sent\n", time, Process.id);
             }
         }
     }

@@ -11,7 +11,7 @@ int main(int agrc, char *argv[])
   int TimeStart = getClk();
   int LastClk = TimeStart;
   int ElapsedTime = 0;
-  printf("I am process %d\n", getpid());
+  //printf("I am process %d\n", getpid());
   //TODO it needs to get the remaining time from somewhere
   //will save remaining time in memory with id of it's pid
   /* initialize shared memory */
@@ -34,8 +34,8 @@ int temp=0;
       
     }
   }
-  printf("I Executed for %d\n",ElapsedTime);
-  printf("I Finished After %d\n", getClk()-TimeStart);
+ // printf("I Executed for %d\n",ElapsedTime);
+  //printf("I Finished After %d\n", getClk()-TimeStart);
   signal(getppid(),SIGCHLD); // tell scheduler I have finished 
   return 0;
 }
