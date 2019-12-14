@@ -1,6 +1,13 @@
 {
     "files.associations": {
         "headers.h": "c",
-        "MinHeap.C": "cpp"
+        "MinHeap.C": "cpp",
+        "array": "c",
+        "deque": "c",
+        "forward_list": "c",
+        "list": "c",
+        "vector": "c",
+        "string_view": "c",
+        "string": "c"
     }
 }

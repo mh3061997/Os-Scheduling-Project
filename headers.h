@@ -66,16 +66,16 @@ struct process *newprocess(struct process p)
 }
 
 // Return the value at head
-struct process *peek(struct process **head)
+struct process *PeekPQ(struct process **head)
 {
     return (*head);
 }
 
 // Removes the element with the
 // highest priority from the list
-void pop(struct process **head)
+void PopPQ(struct process **head)
 {
-    if (isEmpty(head))
+    if (isEmptyPQ(head))
     {
         printf("queue is empty !!!!\n");
         return;
@@ -85,43 +85,44 @@ void pop(struct process **head)
     free(temp);
 }
 
-void deleteProcess(struct process  **head_ref,struct process p) 
-{ 
-    printf("Deleting Process #%d\n",p.id);
-    // Store head node 
-     struct process* temp = *head_ref, *prev; 
-  
-    // If head node itself holds the key to be deleted 
-    if (temp != NULL && temp->id == p.id) 
-    { 
-        *head_ref = temp->next;   // Changed head 
-        free(temp);               // free old head 
-        return; 
-    } 
-  
-    // Search for the key to be deleted, keep track of the 
-    // previous node as we need to change 'prev->next' 
-    while (temp != NULL && temp->id == p.id) 
-    { 
-        prev = temp; 
-        temp = temp->next; 
-    } 
-  
-    // If key was not present in linked list 
-    if (temp == NULL) return; 
-  
-    // Unlink the node from linked list 
-    prev->next = temp->next; 
-  
-    free(temp);  // Free memory 
-} 
+void deleteProcessPQ(struct process **head_ref, struct process p)
+{
+    printf("Deleting Process #%d\n", p.id);
+    // Store head process
+    struct process *temp = *head_ref, *prev;
+
+    // If head process itself holds the key to be deleted
+    if (temp != NULL && temp->id == p.id)
+    {
+        *head_ref = temp->next; // Changed head
+        free(temp);             // free old head
+        return;
+    }
+
+    // Search for the key to be deleted, keep track of the
+    // previous process as we need to change 'prev->next'
+    while (temp != NULL && temp->id == p.id)
+    {
+        prev = temp;
+        temp = temp->next;
+    }
+
+    // If key was not present in linked list
+    if (temp == NULL)
+        return;
+
+    // Unlink the process from linked list
+    prev->next = temp->next;
+
+    free(temp); // Free memory
+}
 // Function to push according to priority
-void push(struct process **head, struct process p)
+void PushPQ(struct process **head, struct process p)
 {
 
     // Create new struct process
     struct process *temp = newprocess(p);
-    printf("Pushing Process #%d\n",temp->id);
+    printf("Pushing Process #%d\n", temp->id);
     if ((*head) == NULL)
     {
         //printf("it wont be empty any more\n");
@@ -158,9 +159,68 @@ void push(struct process **head, struct process p)
     }
 }
 
-int isEmpty(struct process **head)
+int isEmptyPQ(struct process **head)
 {
     return (*head) == NULL;
+}
+
+//Queue for RR functions
+struct Queue
+{
+    struct process *front;
+    struct process *rear;
+};
+
+void enqueue(struct Queue *queue, struct process p)
+{
+    printf("Enqueueing Process #%d\n", p.id);
+    struct process *nptr = newprocess(p);
+
+    if (queue->rear == NULL)
+    {
+        printf("REAR NULL\n");
+        queue->front = nptr;
+        queue->rear = nptr;
+    }
+    else
+    {
+        queue->rear->next = nptr;
+        queue->rear = queue->rear->next;
+    }
+}
+
+void display(struct Queue *queue)
+{
+
+    struct process *temp;
+    temp = queue->front;
+    printf("\n");
+    while (temp != NULL)
+    {
+        temp = temp->next;
+    }
+}
+
+struct process *dequeue(struct Queue *queue)
+{
+    if (queue->front == NULL)
+    {
+        printf("\n\nqueue is empty \n");
+        return 0;
+    }
+    else
+    {
+        struct process *temp;
+        temp = queue->front;
+        queue->front = queue->front->next;
+        printf(" dequeuedProcess #%d at time %d\n",temp->id, getClk());
+        //free(temp);
+        return temp;
+    }
+}
+int isEmptyRRQ(struct Queue * q)
+{
+    return q->front == NULL;
 }
 //
 //////////////////////////

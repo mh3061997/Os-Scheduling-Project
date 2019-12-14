@@ -37,8 +37,8 @@ int main(int argc, char *argv[])
     {
         //invalid input exit
         //to do
-        printf("Algo Num Invalid Process Generator will now exit ");
-        kill(getpgrp(),SIGKILL);
+        printf("Algo Num Invalid Process Generator will now exit\n ");
+        killpg(getpgrp(), SIGKILL);
     }
 
     // 3. Initiate and create the scheduler and clock processes.
@@ -48,19 +48,30 @@ int main(int argc, char *argv[])
         //child
         execvp("./clk.out", NULL); //child executes clk process
     }
-    else
-    {
-        //parent
-    }
+
 
     int PidScheduler = fork();
     if (PidScheduler == 0)
     {
-        char temp[sizeof(int)*4]; //up to 4 digits of input 
-       sprintf(temp,"%d",AlgoUsed); //convert int to string 
-       //printf("algo used sprintf %s\n",temp);
-        char *argv[] = {"./scheduler.out",temp, NULL};
-        execvp("./scheduler.out", argv); //child executes scheduler process
+        if (AlgoUsed != RR)
+        {
+            char temp[sizeof(int) * 4];    //up to 4 digits of input
+            sprintf(temp, "%d", AlgoUsed); //convert int to string
+                                           //printf("algo used sprintf %s\n",temp);
+            char *argv[] = {"./scheduler.out", temp, NULL};
+            execvp("./scheduler.out", argv); //child executes scheduler process
+        }
+        else
+        {
+            //printf("the rrq is %d\n", RRQuantum);
+            //pass RR quantum to scheduler
+            char temp[sizeof(int) * 4];       //up to 4 digits of input
+            sprintf(temp, "%d", AlgoUsed);    //convert int to string
+            char tempRR[sizeof(int) * 4];     //up to 4 digits of input
+            sprintf(tempRR, "%d", RRQuantum); //convert int to string
+            char *argv[] = {"./scheduler.out", temp, tempRR, NULL};
+            execvp("./scheduler.out", argv); //child executes scheduler process
+        }
     }
 
     // sleep(5);
@@ -113,16 +124,16 @@ int main(int argc, char *argv[])
         ProcessArr[i].arrivaltime = Pdata;
         fscanf(fileptr, "%d", &Pdata); //read runtime
         ProcessArr[i].runningtime = Pdata;
-        ProcessArr[i].TimeRemaining =Pdata;
+        ProcessArr[i].TimeRemaining = Pdata;
 
         fscanf(fileptr, "%d", &Pdata); //read priority
         ProcessArr[i].priority = Pdata;
         //to be updated by scheduler
-         ProcessArr[i].pid = -1;
-         ProcessArr[i].state =Suspended;
-         ProcessArr[i].TimeWait = 0;
-         ProcessArr[i].TimeExecution = 0;
-         ProcessArr[i].next=NULL;
+        ProcessArr[i].pid = -1;
+        ProcessArr[i].state = Suspended;
+        ProcessArr[i].TimeWait = 0;
+        ProcessArr[i].TimeExecution = 0;
+        ProcessArr[i].next = NULL;
 
         printf("process%d\t%d\t%d\t%d\t%d\n", i, ProcessArr[i].id, ProcessArr[i].arrivaltime, ProcessArr[i].runningtime, ProcessArr[i].priority);
     }
@@ -162,7 +173,7 @@ int main(int argc, char *argv[])
                 if (send_val == -1)
                     perror("Errror in send");
                 // else
-                   //  printf("time %d process #%d sent\n", time, Process.id);
+                //  printf("time %d process #%d sent\n", time, Process.id);
             }
         }
     }
