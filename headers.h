@@ -15,6 +15,9 @@
 #include <string.h>
 #include <time.h>
 ///////
+#define HPF 0
+#define SRTN 1
+#define RR 2
 
 #define Suspended 0
 #define Running 1

@@ -32,6 +32,7 @@ int main(int argc, char *argv[])
     //PriotityQueue=NULL;
     //int AlgoUsed=atoi(argv[1]);
     printf("Algo used is %d\n", atoi(argv[1]));
+    int AlgoUsed = atoi(argv[1]);
     int NumProcesses = 0;           //start with 0 processes
     struct process ReceivedProcess; //process placeholder
     struct process RunningProcess;  //process placeholder
@@ -44,63 +45,79 @@ int main(int argc, char *argv[])
         perror("Error in create");
         exit(-1);
     }
-    while (1)
+
+    if (AlgoUsed == HPF)
     {
-        signal(SIGCHLD, receivedfn);
-        //printf("RECEIVED1\n");
-        int rec_val = msgrcv(msgqid, &ReceivedProcess, sizeof(struct process), 0, !IPC_NOWAIT);
-        if (rec_val == -1)
+        while (1)
         {
-            printf("At time %d Process %d finished\n",getClk(),RunningProcess.id);
-            deleteProcess(&PriotityQueue,RunningProcess);
-            isrunning = false;
-        }
-
-        if (rec_val != -1)
-        {
-            // if (firstrun)
-            // {
-            //     printf("Initializing queue\n");
-            //     firstrun = false;
-            //     PriotityQueue = newprocess(ReceivedProcess);
-            // }
-            printf("Time %d Process #%d received  \n", getClk(), ReceivedProcess.id);
-            NumProcesses++;
-            //printf("before push recv %d\n", ReceivedProcess.id);
-            //PriotityQueue = &ReceivedProcess;
-            push(&PriotityQueue, ReceivedProcess);
-        }
-
-        //printf("after push\n");
-        if (!isrunning && !isEmpty(&PriotityQueue))
-        {
-            printf("Starting a process\n");
-            // printf("First Run\n");
-            isrunning = true;
-            //printf("queue %d\n", (*PriotityQueue).id);
-            RunningProcess = *(peek(&PriotityQueue));
-            printf("after peek %d\n", RunningProcess.id);
-             //pop(&PriotityQueue);
-            int pid = fork();
-            if (pid == 0)
+            signal(SIGCHLD, receivedfn);
+            //printf("RECEIVED1\n");
+            int rec_val = msgrcv(msgqid, &ReceivedProcess, sizeof(struct process), 0, !IPC_NOWAIT);
+            if (rec_val == -1)
             {
-
-                //child
-                char temp[sizeof(int) * 4]; //up to 4 digits of input
-                sprintf(temp, "%d", RunningProcess.TimeRemaining);
-                char *argv[] = {"./process.out", temp, NULL};
-                execvp(argv[0], argv); //child executes process
+                printf("At time %d Process %d finished\n", getClk(), RunningProcess.id);
+                deleteProcess(&PriotityQueue, RunningProcess);
+                isrunning = false;
             }
-        }
 
-        // sleep(1);
-        // kill(pid,SIGSTOP);
-        // printf("Stopped\n");
-        // sleep(10);
-        // kill(pid,SIGCONT);
-        // printf("Continued\n");
-        // sleep(INT_MAX);
+            if (rec_val != -1)
+            {
+                // if (firstrun)
+                // {
+                //     printf("Initializing queue\n");
+                //     firstrun = false;
+                //     PriotityQueue = newprocess(ReceivedProcess);
+                // }
+                printf("Time %d Process #%d received  \n", getClk(), ReceivedProcess.id);
+                NumProcesses++;
+                //printf("before push recv %d\n", ReceivedProcess.id);
+                //PriotityQueue = &ReceivedProcess;
+                push(&PriotityQueue, ReceivedProcess);
+            }
+
+            //printf("after push\n");
+            if (!isrunning && !isEmpty(&PriotityQueue))
+            {
+                printf("Starting a process\n");
+                // printf("First Run\n");
+                isrunning = true;
+                //printf("queue %d\n", (*PriotityQueue).id);
+                RunningProcess = *(peek(&PriotityQueue));
+                printf("after peek %d\n", RunningProcess.id);
+                //pop(&PriotityQueue);
+                int pid = fork();
+                if (pid == 0)
+                {
+
+                    //child
+                    char temp[sizeof(int) * 4]; //up to 4 digits of input
+                    sprintf(temp, "%d", RunningProcess.TimeRemaining);
+                    char *argv[] = {"./process.out", temp, NULL};
+                    execvp(argv[0], argv); //child executes process
+                }
+            }
+
+            // sleep(1);
+            // kill(pid,SIGSTOP);
+            // printf("Stopped\n");
+            // sleep(10);
+            // kill(pid,SIGCONT);
+            // printf("Continued\n");
+            // sleep(INT_MAX);
+        }
     }
+    else if (AlgoUsed == SRTN)
+    {
+    }
+    else if (AlgoUsed == RR)
+    {
+    }
+    else
+    {
+        printf("Algo Num Invalid Scheduler will now exit ");
+        kill(getpgrp(), SIGKILL);
+    }
+
     //upon termination release the clock resources
     destroyClk(false);
 }

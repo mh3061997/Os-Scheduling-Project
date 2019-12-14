@@ -1,7 +1,4 @@
 #include "headers.h"
-#define HPF 0
-#define SRTN 1
-#define RR 2
 int AlgoNum;
 int RRQuantum;
 void clearResources(int);
@@ -40,7 +37,8 @@ int main(int argc, char *argv[])
     {
         //invalid input exit
         //to do
-        printf("Algo Num Invalid");
+        printf("Algo Num Invalid Process Generator will now exit ");
+        kill(getpgrp(),SIGKILL);
     }
 
     // 3. Initiate and create the scheduler and clock processes.
