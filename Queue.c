@@ -15,7 +15,7 @@ struct Queue
 
 void display(struct Queue *queue);
 void enqueue(struct Queue *queue, int item);
-struct Queue *dequeue(struct Queue *queue);
+struct node *dequeue(struct Queue *queue);
 int main()
 {
 
@@ -24,10 +24,11 @@ int main()
     queue->rear = NULL;
 
     enqueue(queue, 1);
+    dequeue(queue);
     enqueue(queue, 2);
     enqueue(queue, 3);
-    struct node* temp =dequeue(queue);
-    enqueue(queue,temp->data);
+    //struct node* temp =dequeue(queue);
+    //enqueue(queue,temp->data);
     display(queue);
 }
 
@@ -50,6 +51,35 @@ void enqueue(struct Queue *queue, int item)
     }
 }
 
+struct node *dequeue(struct Queue *queue)
+{
+
+    if (queue->front == NULL)
+    {
+        printf("\n\nqueue is empty \n");
+        return 0;
+    }
+    else if (queue->front == queue->rear)
+    {
+        struct node *temp;
+        temp = queue->front;
+        queue->front = NULL;
+        queue->rear = NULL;
+        printf("\n\n%d deleted", temp->data);
+        //free(temp);
+        return temp;
+    }
+    else
+    {
+        struct node *temp;
+        temp = queue->front;
+        queue->front = queue->front->next;
+        printf("\n\n%d deleted", temp->data);
+        //free(temp);
+        return temp;
+    }
+}
+
 void display(struct Queue *queue)
 {
 
@@ -63,24 +93,6 @@ void display(struct Queue *queue)
     }
 }
 
-struct Queue *dequeue(struct Queue *queue)
-{
-
-    if (queue->front == NULL)
-    {
-        printf("\n\nqueue is empty \n");
-        return 0;
-    }
-    else
-    {
-        struct node *temp;
-        temp = queue->front;
-        queue->front = queue->front->next;
-        printf("\n\n%d deleted", temp->data);
-        //free(temp);
-        return temp;
-    }
-}
 /*
 #include <stdio.h>
 #include <stdlib.h>

@@ -173,12 +173,13 @@ struct Queue
 
 void enqueue(struct Queue *queue, struct process p)
 {
-    printf("Enqueueing Process #%d\n", p.id);
+
+    //printf("Enqueueing Process #%d\n", p.id);
     struct process *nptr = newprocess(p);
 
     if (queue->rear == NULL)
     {
-        printf("REAR NULL\n");
+      //  printf("REAR NULL\n");
         queue->front = nptr;
         queue->rear = nptr;
     }
@@ -191,14 +192,20 @@ void enqueue(struct Queue *queue, struct process p)
 
 void display(struct Queue *queue)
 {
-
+    
+    if(queue->front==NULL)
+    {
+        printf("nth to display\n");
+        return;
+    }
     struct process *temp;
     temp = queue->front;
-    printf("\n");
+    printf("%d ",temp->id);
     while (temp != NULL)
     {
         temp = temp->next;
     }
+    printf("\n");
 }
 
 struct process *dequeue(struct Queue *queue)
@@ -208,19 +215,29 @@ struct process *dequeue(struct Queue *queue)
         printf("\n\nqueue is empty \n");
         return 0;
     }
+     else if (queue->front == queue->rear)
+    {
+        struct node *temp;
+        temp = queue->front;
+        queue->front = NULL;
+        queue->rear = NULL;
+       // printf("\n\n%d deleted", temp->data);
+        //free(temp);
+        return temp;
+    }
     else
     {
         struct process *temp;
         temp = queue->front;
         queue->front = queue->front->next;
-        printf(" dequeuedProcess #%d at time %d\n",temp->id, getClk());
+        //printf(" dequeuedProcess #%d at time %d\n",temp->id, getClk());
         //free(temp);
         return temp;
     }
 }
 int isEmptyRRQ(struct Queue * q)
 {
-    return q->front == NULL;
+    return ((q->front) == NULL);
 }
 //
 //////////////////////////

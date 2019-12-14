@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
         fscanf(fileptr, "%d", &Pdata); //read priority
         ProcessArr[i].priority = Pdata;
         //to be updated by scheduler
-        ProcessArr[i].pid = -1;
+        ProcessArr[i].pid = 900;
         ProcessArr[i].state = Suspended;
         ProcessArr[i].TimeWait = 0;
         ProcessArr[i].TimeExecution = 0;

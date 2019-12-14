@@ -16,7 +16,7 @@ int main(int agrc, char *argv[])
   //will save remaining time in memory with id of it's pid
   /* initialize shared memory */
   remainingtime = atoi(argv[1]);
-  printf("my rem time is %d\n", remainingtime);
+  //printf("my rem time is %d\n", remainingtime);
 int temp=0;
   while (ElapsedTime < remainingtime)
   {
