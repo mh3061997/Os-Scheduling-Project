@@ -174,6 +174,9 @@ int main(int argc, char *argv[])
                     perror("Errror in send");
                 // else
                 //  printf("time %d process #%d sent\n", time, Process.id);
+                if(AlgoUsed==SRTN){
+                    kill(PidScheduler,SIGUSR1); // signal to alert scheduler of process arrival
+                }            
             }
         }
     }

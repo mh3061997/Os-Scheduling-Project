@@ -50,7 +50,21 @@ void enqueue(struct Queue *queue, int item)
         queue->rear = queue->rear->next;
     }
 }
-
+int QueueCount(struct Queue* queue){
+    int count=0;
+    if(queue->front==NULL){
+        return 0;
+    }else{
+         struct node *temp;
+    temp = queue->front;
+    printf("\n");
+    while (temp != NULL)
+    {
+        count++;
+        temp = temp->next;
+    }
+    }
+}
 struct node *dequeue(struct Queue *queue)
 {
 

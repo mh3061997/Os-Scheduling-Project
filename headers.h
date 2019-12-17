@@ -163,6 +163,105 @@ int isEmptyPQ(struct process **head)
 {
     return (*head) == NULL;
 }
+//Min Heap for SRTN functions
+// Return the value at head
+struct process *PeekSRTN(struct process **head)
+{
+    return (*head);
+}
+
+// Removes the element with the
+// highest priority from the list
+void PopSRTN(struct process **head)
+{
+    if (isEmptyPQ(head))
+    {
+        printf("queue is empty !!!!\n");
+        return;
+    }
+    struct process *temp = *head;
+    (*head) = (*head)->next;
+    free(temp);
+}
+
+void deleteProcessSRTN(struct process **head_ref, struct process p)
+{
+    printf("Deleting Process #%d\n", p.id);
+    // Store head process
+    struct process *temp = *head_ref, *prev;
+
+    // If head process itself holds the key to be deleted
+    if (temp != NULL && temp->id == p.id)
+    {
+        *head_ref = temp->next; // Changed head
+        free(temp);             // free old head
+        return;
+    }
+
+    // Search for the key to be deleted, keep track of the
+    // previous process as we need to change 'prev->next'
+    while (temp != NULL && temp->id == p.id)
+    {
+        prev = temp;
+        temp = temp->next;
+    }
+
+    // If key was not present in linked list
+    if (temp == NULL)
+        return;
+
+    // Unlink the process from linked list
+    prev->next = temp->next;
+
+    free(temp); // Free memory
+}
+// Function to push according to priority
+void PushSRTN(struct process **head, struct process p)
+{
+
+    // Create new struct process
+    struct process *temp = newprocess(p);
+   // printf("Pushing Process #%d\n", temp->id);
+    if ((*head) == NULL)
+    {
+        //printf("it wont be empty any more\n");
+        (*head) = temp;
+        return;
+    }
+    struct process *start = (*head);
+
+    // Special Case: The head of list has lesser
+    // priority than new struct process. So insert new
+    // struct process before head struct process and change head struct process.
+    if ((*head)->TimeRemaining > p.TimeRemaining)
+    {
+
+        // Insert New struct process before head
+        temp->next = *head;
+        (*head) = temp;
+    }
+    else
+    {
+
+        // Traverse the list and find a
+        // position to insert new struct process
+        while (start->next != NULL &&
+               start->next->TimeRemaining < p.TimeRemaining)
+        {
+            start = start->next;
+        }
+
+        // Either at the ends of the list
+        // or at required position
+        temp->next = start->next;
+        start->next = temp;
+    }
+}
+
+int isEmptySRTN(struct process **head)
+{
+    return (*head) == NULL;
+}
 
 //Queue for RR functions
 struct Queue
@@ -207,7 +306,21 @@ void display(struct Queue *queue)
     }
     printf("\n");
 }
-
+int QueueCount(struct Queue* queue){
+    int count=0;
+    if(queue->front==NULL){
+        return 0;
+    }else{
+         struct process *temp;
+    temp = queue->front;
+    printf("\n");
+    while (temp != NULL)
+    {
+        count++;
+        temp = temp->next;
+    }
+    }
+}
 struct process *dequeue(struct Queue *queue)
 {
     if (queue->front == NULL)
