@@ -30,14 +30,13 @@ int temp=0;
       //in new cycle
       LastClk=getClk();
       ElapsedTime++;
-     // printf("I am %d Have Been Running for %d\n",getpid(), ElapsedTime);
+      //printf("I Have Been Running for %d\n", ElapsedTime);
       
     }
   }
-      kill(getppid(),SIGCHLD); // tell scheduler I have finished 
-
  // printf("I Executed for %d\n",ElapsedTime);
   //printf("I Finished After %d\n", getClk()-TimeStart);
+  //kill(getppid(),SIGCHLD); // tell scheduler I have finished 
   return 0;
 }
 

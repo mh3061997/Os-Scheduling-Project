@@ -87,7 +87,6 @@ void PopPQ(struct process **head)
 
 void deleteProcessPQ(struct process **head_ref, struct process p)
 {
-    printf("Deleting Process #%d\n", p.id);
     // Store head process
     struct process *temp = *head_ref, *prev;
 
@@ -101,20 +100,22 @@ void deleteProcessPQ(struct process **head_ref, struct process p)
 
     // Search for the key to be deleted, keep track of the
     // previous process as we need to change 'prev->next'
-    while (temp != NULL && temp->id == p.id)
+    while (temp != NULL && temp->id != p.id)
     {
         prev = temp;
         temp = temp->next;
     }
 
     // If key was not present in linked list
-    if (temp == NULL)
-        return;
+    if (temp == NULL){
+                return;
+    }
 
     // Unlink the process from linked list
     prev->next = temp->next;
 
     free(temp); // Free memory
+
 }
 // Function to push according to priority
 void PushPQ(struct process **head, struct process p)
@@ -122,7 +123,7 @@ void PushPQ(struct process **head, struct process p)
 
     // Create new struct process
     struct process *temp = newprocess(p);
-    printf("Pushing Process #%d\n", temp->id);
+    //printf("Pushing Process #%d\n", temp->id);
     if ((*head) == NULL)
     {
         //printf("it wont be empty any more\n");
@@ -186,7 +187,7 @@ void PopSRTN(struct process **head)
 
 void deleteProcessSRTN(struct process **head_ref, struct process p)
 {
-    printf("Deleting Process #%d\n", p.id);
+   // printf("Deleting Process #%d\n", p.id);
     // Store head process
     struct process *temp = *head_ref, *prev;
 
@@ -200,7 +201,7 @@ void deleteProcessSRTN(struct process **head_ref, struct process p)
 
     // Search for the key to be deleted, keep track of the
     // previous process as we need to change 'prev->next'
-    while (temp != NULL && temp->id == p.id)
+    while (temp != NULL && temp->id != p.id)
     {
         prev = temp;
         temp = temp->next;

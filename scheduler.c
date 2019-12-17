@@ -31,6 +31,11 @@ int main(int argc, char *argv[])
     //initialize the msg queue to recv processes
     //from process generator
     key_t msgqid = msgget(MSGQKEY, IPC_CREAT | 0666); // or msgget(12613, IPC_CREATE | 0644)
+    FILE *Filelog;
+    FILE *FilePerf;
+    Filelog = fopen("scheduler_log.txt", "w");
+    fprintf(Filelog, "#At time x process y state arr w total z remain y wait k\n");
+    //FilePerf = fopen("scheduler_perf.txt", "w");
     if (msgqid == -1)
     {
         perror("Error in create");
@@ -39,23 +44,29 @@ int main(int argc, char *argv[])
 
     if (AlgoUsed == HPF)
     {
+        signal(SIGCHLD, receivedfn); //empty handler create just to interrupt msgrcv
         while (1)
         {
-            signal(SIGCHLD, receivedfn); //empty handler create just to interrupt msgrcv
             //printf("RECEIVED1\n");
             int rec_val = msgrcv(msgqid, &ReceivedProcess, sizeof(struct process), 0, !IPC_NOWAIT);
             if (rec_val == -1)
             {
-                printf("At time %d Process %d finished\n", getClk(), RunningProcess.id);
+                printf("param is %d %d \n", RunningProcess.arrivaltime, RunningProcess.TimeRemaining);
+                float wta = ((getClk() - RunningProcess.arrivaltime) / RunningProcess.TimeRemaining);
+                printf("At time %d process %d finished\n", getClk(), RunningProcess.id);
+                // printf("At time %d process %d finished arr %d total %d remain %d wait %d TA %.2f WTA %.2f\n", getClk(), RunningProcess.id, RunningProcess.arrivaltime, RunningProcess.TimeExecution, RunningProcess.TimeRemaining, RunningProcess.TimeWait, (getClk() - RunningProcess.arrivaltime), wta);
+                // fprintf(Filelog,"At time %d process %d finished arr %d total %d remain %d wait %.2f TA %.2f WTA %d\n",getClk(),RunningProcess.id,RunningProcess.arrivaltime,RunningProcess.TimeExecution,RunningProcess.TimeRemaining,RunningProcess.TimeWait,(getClk()-RunningProcess.arrivaltime),wta);
+
                 deleteProcessPQ(&PriotityQueue, RunningProcess);
+                //printf("after delete %d\n",(*(PeekPQ(&PriotityQueue))).id);
                 isrunning = false;
             }
 
             if (rec_val != -1)
             {
-                printf("Time %d Process #%d received  \n", getClk(), ReceivedProcess.id);
+                // printf("Time %d Process #%d received  \n", getClk(), ReceivedProcess.id);
                 NumProcesses++;
-                //printf("before PushPQ recv %d\n", ReceivedProcess.id);
+                // printf("before PushPQ recv %d\n", ReceivedProcess.id);
                 //PriotityQueue = &ReceivedProcess;
                 PushPQ(&PriotityQueue, ReceivedProcess);
             }
@@ -63,12 +74,17 @@ int main(int argc, char *argv[])
             //printf("after PushPQ\n");
             if (!isrunning && !isEmptyPQ(&PriotityQueue))
             {
-                printf("Starting a process\n");
                 // printf("First Run\n");
                 isrunning = true;
-                //printf("queue %d\n", (*PriotityQueue).id);
+                //printf("queue %d\n",(*(PeekPQ(&PriotityQueue))).arrivaltime);
                 RunningProcess = *(PeekPQ(&PriotityQueue));
-                printf("after PeekPQ %d\n", RunningProcess.id);
+                //update running process wait time
+                RunningProcess.TimeWait += getClk();
+                RunningProcess.TimeWait -= RunningProcess.arrivaltime;
+                printf("At time %d process %d started\n", getClk(), RunningProcess.id);
+                // printf("At time %d process %d started arr %d total %d remain %d wait %d\n", getClk(), RunningProcess.id, RunningProcess.arrivaltime, RunningProcess.TimeExecution, RunningProcess.TimeRemaining, RunningProcess.TimeWait);
+                //fprintf(Filelog,"At time %d process %d started arr %d total %d remain %d wait %d\n",getClk(),RunningProcess.id,RunningProcess.arrivaltime,RunningProcess.TimeExecution,RunningProcess.TimeRemaining,RunningProcess.TimeWait);
+                //printf("after PeekPQ %d\n", RunningProcess.id);
                 //pop(&PriotityQueue);
                 int pid = fork();
                 if (pid == 0)
@@ -98,7 +114,7 @@ int main(int argc, char *argv[])
         while (1)
         {
             int sleepval = sleep(INT_MAX);
-            sleepval = INT_MAX - sleepval-1;
+            sleepval = INT_MAX - sleepval -1 ;
             // printf("good morning \n");
             int rec_val = msgrcv(msgqid, &ReceivedProcess, sizeof(struct process), 0, IPC_NOWAIT);
             if (rec_val == -1 && isrunning)
@@ -170,8 +186,6 @@ int main(int argc, char *argv[])
 
                     printf("At time %d Process %d started\n", getClk(), RunningProcess.id);
                     int pid = fork();
-                    RunningProcess.pid = pid;
-                    PeekSRTN(&SRTNQueue)->pid = pid;
                     if (pid == 0)
                     {
                         //child
@@ -180,6 +194,8 @@ int main(int argc, char *argv[])
                         char *argv[] = {"./process.out", temp, NULL};
                         execvp(argv[0], argv); //child executes process
                     }
+                    RunningProcess.pid = pid;
+                    PeekSRTN(&SRTNQueue)->pid = pid;
                 }
                 else //continue it
                 {
