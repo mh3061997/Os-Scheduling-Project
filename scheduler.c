@@ -4,6 +4,7 @@ struct process *PriotityQueue = NULL;
 struct process *SRTNQueue = NULL;
 bool isrunning = false;
 bool parrived = false;
+bool firstrun = true;
 int RRQuantum;
 
 void CleanResources(int signum);
@@ -109,17 +110,17 @@ int main(int argc, char *argv[])
     }
     else if (AlgoUsed == SRTN)
     {
-        signal(SIGUSR1, SRTNfn);     // empty handler for signal received by process generator when a process arrives
-        signal(SIGCHLD, receivedfn); //empty handler create just to interrupt msgrcv
+        signal(SIGUSR1, receivedfn);     // empty handler for signal received by process generator when a process arrives
+        signal(SIGCHLD, SRTNfn); //empty handler create just to interrupt msgrcv
         while (1)
         {
             int sleepval = sleep(INT_MAX);
-            sleepval = INT_MAX - sleepval -1 ;
+            sleepval = INT_MAX - sleepval - 1;
             // printf("good morning \n");
             int rec_val = msgrcv(msgqid, &ReceivedProcess, sizeof(struct process), 0, IPC_NOWAIT);
             if (rec_val == -1 && isrunning)
             {
-                printf("here 1 time %d\n", getClk());
+               // printf("here 1 time %d\n", getClk());
                 //increase wait time of all processes
                 struct process *iterator = SRTNQueue;
                 while (iterator != NULL)
@@ -128,6 +129,11 @@ int main(int argc, char *argv[])
                     {
                         iterator->TimeWait += sleepval;
                     }
+                    else
+                    {
+                      //  printf("running pid rem time is %d %d  \n", iterator->TimeRemaining,RunningProcess.TimeRemaining);
+                    }
+
                     iterator = iterator->next;
                 }
                 //process finished
@@ -138,14 +144,14 @@ int main(int argc, char *argv[])
 
             if (rec_val != -1)
             {
-                printf("here 2 time %d\n", getClk());
+               // printf("here 2 time %d\n", getClk());
                 //  isrunning = false;
                 //if not first time
-                if (RunningProcess.id != 0)
+                if (!firstrun)
                 {
-                    printf("here 2.5time %d\n", getClk());
+                  //  printf("here 2.5time %d\n", getClk());
                     RunningProcess.TimeRemaining -= sleepval;
-                    printf("sleepval is %d and curren rem time is %d\n", sleepval, RunningProcess.TimeRemaining);
+                   // printf("sleepval is %d and curren rem time is %d\n", sleepval, RunningProcess.TimeRemaining);
                     //decrease rem time of runnning process
                     struct process *iterator = SRTNQueue;
                     while (iterator != NULL)
@@ -153,19 +159,27 @@ int main(int argc, char *argv[])
                         if (iterator->id == RunningProcess.id)
                         {
                             iterator->TimeRemaining -= sleepval;
+                            //printf("deceremnting hereee ! after is %d \n", iterator->TimeRemaining);
                         }
                         iterator = iterator->next;
                     }
                     if (ReceivedProcess.TimeRemaining < RunningProcess.TimeRemaining)
                     {
-                        printf("here 2.8 time %d\n", getClk());
-
-                        kill(RunningProcess.pid, SIGTSTP);
+                  //      printf("here 2.8 time %d\n", getClk());
+                        printf("i will stop %d\n ",RunningProcess.pid);
+                        int killval = kill(RunningProcess.pid,SIGTSTP);
+                        if(killval==0){
+                            printf("killed oh yeah \n");
+                        }else
+                        {
+                            perror("error is \n");
+                        }
+                        
                         isrunning = false;
                         printf("At time %d Process %d Stopped\n", getClk(), RunningProcess.id);
                     }
                 }
-
+                firstrun = false;
                 NumProcesses++;
                 PushSRTN(&SRTNQueue, ReceivedProcess);
                 // printf("Time %d Process %d RECV\n", getClk(), ReceivedProcess.id);
@@ -173,7 +187,7 @@ int main(int argc, char *argv[])
 
             if (!isrunning && !isEmptySRTN(&SRTNQueue))
             {
-                printf("here 3 time %d\n", getClk());
+               // printf("here 3 time %d\n", getClk());
                 //  printf("Starting a process\n");
                 isrunning = true;
                 RunningProcess = *(PeekSRTN(&SRTNQueue));
@@ -182,7 +196,7 @@ int main(int argc, char *argv[])
                 //if first time running fork
                 if (RunningProcess.pid == 900)
                 {
-                    printf("here 3.2 time %d\n", getClk());
+               //     printf("here 3.2 time %d\n", getClk());
 
                     printf("At time %d Process %d started\n", getClk(), RunningProcess.id);
                     int pid = fork();
@@ -199,11 +213,11 @@ int main(int argc, char *argv[])
                 }
                 else //continue it
                 {
-                    printf("here 3.5 time %d\n", getClk());
+                  //  printf("here 3.5 time %d\n", getClk());
 
                     printf("At time %d Process %d resumed\n", getClk(), RunningProcess.id);
                     //  printf("will resume %d\n", RunningProcess.pid);
-                    kill(RunningProcess.pid, SIGCONT);
+                    kill((*(PeekSRTN(&SRTNQueue))).pid, SIGCONT);
                 }
             }
 
@@ -327,7 +341,8 @@ int main(int argc, char *argv[])
 
 void SRTNfn(int signum)
 {
-    parrived = true;
+    printf("sigchild recv\n");
+   // parrived = true;
 }
 void receivedfn(int signum)
 {
