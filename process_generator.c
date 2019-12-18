@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
         ProcessArr[i].TimeExecution = 0;
         ProcessArr[i].next = NULL;
 
-        printf("process%d\t%d\t%d\t%d\t%d\t%d\n", i, ProcessArr[i].id, ProcessArr[i].arrivaltime, ProcessArr[i].runningtime, ProcessArr[i].priority,ProcessArr[i].memsize);
+        printf("process #%d\t%d\t%d\t%d\t%d\n", ProcessArr[i].id, ProcessArr[i].arrivaltime, ProcessArr[i].runningtime, ProcessArr[i].priority,ProcessArr[i].memsize);
     }
 
     // 6. Send the information to the scheduler at the appropriate time.

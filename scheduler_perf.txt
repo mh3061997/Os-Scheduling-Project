@@ -1,0 +1,4 @@
+CPU Utilization=100%
+AVG WTA=86304070
+AVG Waiting=5
+STD WTA=0

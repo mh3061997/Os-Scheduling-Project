@@ -6,11 +6,21 @@ bool isrunning = false;
 bool parrived = false;
 bool firstrun = true;
 int RRQuantum;
+int MemoryArr[4];
+
+int TotalWTA;
+int TotalWaiting;
+int NumProcesses = 0; //start with 0 processes
+FILE *FilePerf;
 
 void CleanResources(int signum);
 void receivedfn(int signum); //sigchild handler
 void RRQfn(int signum);      //fn to handle quantum expiring
 void SRTNfn(int signum);
+void MemAllocate(FILE *FileMem, struct process RunningProcess);
+void MemDeallocate(FILE *FileMem, struct process RunningProcess);
+void FileOutStart(FILE *FilePerf, struct process RunningProcess);
+void FileOutFinish(FILE *FilePerf, struct process RunningProcess);
 
 int main(int argc, char *argv[])
 {
@@ -25,14 +35,12 @@ int main(int argc, char *argv[])
     if (AlgoUsed == RR)
         RRQuantum = atoi(argv[2]);
 
-    int NumProcesses = 0;           //start with 0 processes
     struct process ReceivedProcess; //process placeholder
     struct process RunningProcess;  //process placeholder
 
     //Memory Array is 1024 bytes
     //divided into 4 Partitions each 256 bytes
     //index is Process ID reserveing it
-    int MemoryArr[4];
     for (int i = 0; i < 4; i++)
     {
         MemoryArr[i] = 0; //init as 0s
@@ -42,7 +50,6 @@ int main(int argc, char *argv[])
     //from process generator
     key_t msgqid = msgget(MSGQKEY, IPC_CREAT | 0666); // or msgget(12613, IPC_CREATE | 0644)
     FILE *Filelog;
-    FILE *FilePerf;
     FILE *FileMem;
     FileMem = fopen("memory_log.txt", "w");
     Filelog = fopen("scheduler_log.txt", "w");
@@ -74,37 +81,13 @@ int main(int argc, char *argv[])
                 //printf("after delete %d\n",(*(PeekPQ(&PriotityQueue))).id);
                 isrunning = false;
 
-                //deallocate memory for the process when finished
-                int i = 0;
-                int found = 0;
-                for (i = 0; i < 4; i++)
-                {
-                    if (MemoryArr[i] == RunningProcess.id) //get index of first available place
-                    {
-                        found = 1;
-                        MemoryArr[i] = 0;
-                        break;
-                    }
-                }
-                if (found == 1)
-                {
-                    if (i == 0)
-                    {
-                        fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 0 to 255\n", getClk(), RunningProcess.memsize, RunningProcess.id);
-                    }
-                    else if (i == 1)
-                    {
-                        fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 256 to 511\n", getClk(), RunningProcess.memsize, RunningProcess.id);
-                    }
-                    else if (i == 2)
-                    {
-                        fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 512 to 767 \n", getClk(), RunningProcess.memsize, RunningProcess.id);
-                    }
-                    else if (i == 3)
-                    {
-                        fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 768 to 1023\n", getClk(), RunningProcess.memsize, RunningProcess.id);
-                    }
-                }
+                //Deallocate Memory When Process Has Finished
+                MemDeallocate(FileMem, RunningProcess);
+
+                //add wta
+                TotalWTA += wta;
+                //add waiting
+                TotalWaiting += RunningProcess.TimeWait;
             }
 
             if (rec_val != -1)
@@ -132,36 +115,7 @@ int main(int argc, char *argv[])
                 fprintf(Filelog, "At time %d process %d started arr %d total %d remain %d wait %d\n", getClk(), RunningProcess.id, RunningProcess.arrivaltime, RunningProcess.TimeExecution, RunningProcess.TimeRemaining, RunningProcess.TimeWait);
 
                 //allocate memory for the process
-                int i = 0;
-                int found = 0;
-                for (i = 0; i < 4; i++)
-                {
-                    if (MemoryArr[i] == 0) //get index of first available place
-                    {
-                        found = 1;
-                        MemoryArr[i] = RunningProcess.id;
-                        break;
-                    }
-                }
-                if (found == 1)
-                {
-                    if (i == 0)
-                    {
-                        fprintf(FileMem, "At time %d allocated %d bytes for process %d from 0 to 255\n", getClk(), RunningProcess.memsize, RunningProcess.id);
-                    }
-                    else if (i == 1)
-                    {
-                        fprintf(FileMem, "At time %d allocated %d bytes for process %d from 256 to 511\n", getClk(), RunningProcess.memsize, RunningProcess.id);
-                    }
-                    else if (i == 2)
-                    {
-                        fprintf(FileMem, "At time %d allocated %d bytes for process %d from 512 to 767 \n", getClk(), RunningProcess.memsize, RunningProcess.id);
-                    }
-                    else if (i == 3)
-                    {
-                        fprintf(FileMem, "At time %d allocated %d bytes for process %d from 768 to 1023\n", getClk(), RunningProcess.memsize, RunningProcess.id);
-                    }
-                }
+                MemAllocate(FileMem, RunningProcess);
 
                 // printf("At time %d process %d started arr %d total %d remain %d wait %d\n", getClk(), RunningProcess.id, RunningProcess.arrivaltime, RunningProcess.TimeExecution, RunningProcess.TimeRemaining, RunningProcess.TimeWait);
                 //fprintf(Filelog,"At time %d process %d started arr %d total %d remain %d wait %d\n",getClk(),RunningProcess.id,RunningProcess.arrivaltime,RunningProcess.TimeExecution,RunningProcess.TimeRemaining,RunningProcess.TimeWait);
@@ -225,37 +179,12 @@ int main(int argc, char *argv[])
                 float wta = ((getClk() - RunningProcess.arrivaltime) / RunningProcess.TimeRemaining);
                 fprintf(Filelog, "At time %d process %d finished arr %d total %d remain %d wait %d TA %.2f WTA %d\n", getClk(), RunningProcess.id, RunningProcess.arrivaltime, RunningProcess.TimeExecution, RunningProcess.TimeRemaining, RunningProcess.TimeWait, (getClk() - RunningProcess.arrivaltime), wta);
 
-                //deallocate memory for the process when finished
-                int i = 0;
-                int found = 0;
-                for (i = 0; i < 4; i++)
-                {
-                    if (MemoryArr[i] == RunningProcess.id) //get index of first available place
-                    {
-                        found = 1;
-                        MemoryArr[i] = 0;
-                        break;
-                    }
-                }
-                if (found == 1)
-                {
-                    if (i == 0)
-                    {
-                        fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 0 to 255\n", getClk(), RunningProcess.memsize, RunningProcess.id);
-                    }
-                    else if (i == 1)
-                    {
-                        fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 256 to 511\n", getClk(), RunningProcess.memsize, RunningProcess.id);
-                    }
-                    else if (i == 2)
-                    {
-                        fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 512 to 767 \n", getClk(), RunningProcess.memsize, RunningProcess.id);
-                    }
-                    else if (i == 3)
-                    {
-                        fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 768 to 1023\n", getClk(), RunningProcess.memsize, RunningProcess.id);
-                    }
-                }
+                //Deallocate Memory When Process Has Finished
+                MemDeallocate(FileMem, RunningProcess);
+                //add wta
+                TotalWTA += wta;
+                //add waiting
+                TotalWaiting += RunningProcess.TimeWait;
             }
 
             if (rec_val != -1)
@@ -334,36 +263,7 @@ int main(int argc, char *argv[])
                     PeekSRTN(&SRTNQueue)->pid = pid;
 
                     //allocate memory for the process
-                    int i = 0;
-                    int found = 0;
-                    for (i = 0; i < 4; i++)
-                    {
-                        if (MemoryArr[i] == 0) //get index of first available place
-                        {
-                            found = 1;
-                            MemoryArr[i] = RunningProcess.id;
-                            break;
-                        }
-                    }
-                    if (found == 1)
-                    {
-                        if (i == 0)
-                        {
-                            fprintf(FileMem, "At time %d allocated %d bytes for process %d from 0 to 255\n", getClk(), RunningProcess.memsize, RunningProcess.id);
-                        }
-                        else if (i == 1)
-                        {
-                            fprintf(FileMem, "At time %d allocated %d bytes for process %d from 256 to 511\n", getClk(), RunningProcess.memsize, RunningProcess.id);
-                        }
-                        else if (i == 2)
-                        {
-                            fprintf(FileMem, "At time %d allocated %d bytes for process %d from 512 to 767 \n", getClk(), RunningProcess.memsize, RunningProcess.id);
-                        }
-                        else if (i == 3)
-                        {
-                            fprintf(FileMem, "At time %d allocated %d bytes for process %d from 768 to 1023\n", getClk(), RunningProcess.memsize, RunningProcess.id);
-                        }
-                    }
+                    MemAllocate(FileMem, RunningProcess);
                 }
                 else //continue it
                 {
@@ -425,37 +325,12 @@ int main(int argc, char *argv[])
                         float wta = ((getClk() - RunningProcess.arrivaltime) / RunningProcess.TimeRemaining);
                         fprintf(Filelog, "At time %d process %d finished arr %d total %d remain %d wait %d TA %.2f WTA %d\n", getClk(), RunningProcess.id, RunningProcess.arrivaltime, RunningProcess.TimeExecution, RunningProcess.TimeRemaining, RunningProcess.TimeWait, (getClk() - RunningProcess.arrivaltime), wta);
 
-                        //deallocate memory for the process when finished
-                        int i = 0;
-                        int found = 0;
-                        for (i = 0; i < 4; i++)
-                        {
-                            if (MemoryArr[i] == RunningProcess.id) //get index of first available place
-                            {
-                                found = 1;
-                                MemoryArr[i] = 0;
-                                break;
-                            }
-                        }
-                        if (found == 1)
-                        {
-                            if (i == 0)
-                            {
-                                fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 0 to 255\n", getClk(), RunningProcess.memsize, RunningProcess.id);
-                            }
-                            else if (i == 1)
-                            {
-                                fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 256 to 511\n", getClk(), RunningProcess.memsize, RunningProcess.id);
-                            }
-                            else if (i == 2)
-                            {
-                                fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 512 to 767 \n", getClk(), RunningProcess.memsize, RunningProcess.id);
-                            }
-                            else if (i == 3)
-                            {
-                                fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 768 to 1023\n", getClk(), RunningProcess.memsize, RunningProcess.id);
-                            }
-                        }
+                        //Deallocate Memory When Process Has Finished
+                        MemDeallocate(FileMem, RunningProcess);
+                        //add wta
+                        TotalWTA += wta;
+                        //add waiting
+                        TotalWaiting += RunningProcess.TimeWait;
                     }
                     isrunning = false;
 
@@ -498,36 +373,7 @@ int main(int argc, char *argv[])
                         }
 
                         //allocate memory for the process
-                        int i = 0;
-                        int found = 0;
-                        for (i = 0; i < 4; i++)
-                        {
-                            if (MemoryArr[i] == 0) //get index of first available place
-                            {
-                                found = 1;
-                                MemoryArr[i] = RunningProcess.id;
-                                break;
-                            }
-                        }
-                        if (found == 1)
-                        {
-                            if (i == 0)
-                            {
-                                fprintf(FileMem, "At time %d allocated %d bytes for process %d from 0 to 255\n", getClk(), RunningProcess.memsize, RunningProcess.id);
-                            }
-                            else if (i == 1)
-                            {
-                                fprintf(FileMem, "At time %d allocated %d bytes for process %d from 256 to 511\n", getClk(), RunningProcess.memsize, RunningProcess.id);
-                            }
-                            else if (i == 2)
-                            {
-                                fprintf(FileMem, "At time %d allocated %d bytes for process %d from 512 to 767 \n", getClk(), RunningProcess.memsize, RunningProcess.id);
-                            }
-                            else if (i == 3)
-                            {
-                                fprintf(FileMem, "At time %d allocated %d bytes for process %d from 768 to 1023\n", getClk(), RunningProcess.memsize, RunningProcess.id);
-                            }
-                        }
+                        MemAllocate(FileMem, RunningProcess);
                     }
                     else //continue it
                     {
@@ -585,5 +431,90 @@ void CleanResources(int signum)
     key_t msgqid = msgget(MSGQKEY, IPC_CREAT | 0666); // or msgget(12613, IPC_CREATE | 0644)
     //deleted msg queue between process generator and scheduler
     msgctl(msgqid, IPC_RMID, (struct msqid_ds *)0);
+
+    FilePerf = fopen("scheduler_perf.txt", "w");
+
+    //write to performance file
+    fprintf(FilePerf, "CPU Utilization=100%%\n");
+   //// fprintf(FilePerf, "%d %d \n", TotalWTA, NumProcesses);
+    fprintf(FilePerf, "AVG WTA=%d\n", (TotalWTA / NumProcesses));
+    //fprintf(FilePerf, "%d %d     \n", TotalWaiting, NumProcesses);
+    fprintf(FilePerf, "AVG Waiting=%d\n", (TotalWaiting / NumProcesses));
+    fprintf(FilePerf, "STD WTA=%d\n", 0);
+
     exit(0);
+}
+
+void MemAllocate(FILE *FileMem, struct process RunningProcess)
+{
+    int i = 0;
+    int found = 0;
+    for (i = 0; i < 4; i++)
+    {
+        if (MemoryArr[i] == 0) //get index of first available place
+        {
+            found = 1;
+            MemoryArr[i] = RunningProcess.id;
+            break;
+        }
+    }
+    if (found == 1)
+    {
+        if (i == 0)
+        {
+            fprintf(FileMem, "At time %d allocated %d bytes for process %d from 0 to 255\n", getClk(), RunningProcess.memsize, RunningProcess.id);
+        }
+        else if (i == 1)
+        {
+            fprintf(FileMem, "At time %d allocated %d bytes for process %d from 256 to 511\n", getClk(), RunningProcess.memsize, RunningProcess.id);
+        }
+        else if (i == 2)
+        {
+            fprintf(FileMem, "At time %d allocated %d bytes for process %d from 512 to 767 \n", getClk(), RunningProcess.memsize, RunningProcess.id);
+        }
+        else if (i == 3)
+        {
+            fprintf(FileMem, "At time %d allocated %d bytes for process %d from 768 to 1023\n", getClk(), RunningProcess.memsize, RunningProcess.id);
+        }
+    }
+}
+void MemDeallocate(FILE *FileMem, struct process RunningProcess)
+{
+    //deallocate memory for the process when finished
+    int i = 0;
+    int found = 0;
+    for (i = 0; i < 4; i++)
+    {
+        if (MemoryArr[i] == RunningProcess.id) //get index of first available place
+        {
+            found = 1;
+            MemoryArr[i] = 0;
+            break;
+        }
+    }
+    if (found == 1)
+    {
+        if (i == 0)
+        {
+            fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 0 to 255\n", getClk(), RunningProcess.memsize, RunningProcess.id);
+        }
+        else if (i == 1)
+        {
+            fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 256 to 511\n", getClk(), RunningProcess.memsize, RunningProcess.id);
+        }
+        else if (i == 2)
+        {
+            fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 512 to 767 \n", getClk(), RunningProcess.memsize, RunningProcess.id);
+        }
+        else if (i == 3)
+        {
+            fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 768 to 1023\n", getClk(), RunningProcess.memsize, RunningProcess.id);
+        }
+    }
+}
+void FileOutStart(FILE *FilePerf, struct process RunningProcess)
+{
+}
+void FileOutFinish(FILE *FilePerf, struct process RunningProcess)
+{
 }
