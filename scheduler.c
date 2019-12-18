@@ -29,12 +29,24 @@ int main(int argc, char *argv[])
     struct process ReceivedProcess; //process placeholder
     struct process RunningProcess;  //process placeholder
 
+    //Memory Array is 1024 bytes
+    //divided into 4 Partitions each 256 bytes
+    //index is Process ID reserveing it
+    int MemoryArr[4];
+    for (int i = 0; i < 4; i++)
+    {
+        MemoryArr[i] = 0; //init as 0s
+    }
+
     //initialize the msg queue to recv processes
     //from process generator
     key_t msgqid = msgget(MSGQKEY, IPC_CREAT | 0666); // or msgget(12613, IPC_CREATE | 0644)
     FILE *Filelog;
     FILE *FilePerf;
+    FILE *FileMem;
+    FileMem = fopen("memory_log.txt", "w");
     Filelog = fopen("scheduler_log.txt", "w");
+    fprintf(FileMem, "#At time x allocated y bytes for process z from i to j\n");
     fprintf(Filelog, "#At time x process y state arr w total z remain y wait k\n");
     //FilePerf = fopen("scheduler_perf.txt", "w");
     if (msgqid == -1)
@@ -52,15 +64,47 @@ int main(int argc, char *argv[])
             int rec_val = msgrcv(msgqid, &ReceivedProcess, sizeof(struct process), 0, !IPC_NOWAIT);
             if (rec_val == -1)
             {
-                printf("param is %d %d \n", RunningProcess.arrivaltime, RunningProcess.TimeRemaining);
-                float wta = ((getClk() - RunningProcess.arrivaltime) / RunningProcess.TimeRemaining);
+                //printf("param is %d %d \n", RunningProcess.arrivaltime, RunningProcess.TimeRemaining);
                 printf("At time %d process %d finished\n", getClk(), RunningProcess.id);
                 // printf("At time %d process %d finished arr %d total %d remain %d wait %d TA %.2f WTA %.2f\n", getClk(), RunningProcess.id, RunningProcess.arrivaltime, RunningProcess.TimeExecution, RunningProcess.TimeRemaining, RunningProcess.TimeWait, (getClk() - RunningProcess.arrivaltime), wta);
-                // fprintf(Filelog,"At time %d process %d finished arr %d total %d remain %d wait %.2f TA %.2f WTA %d\n",getClk(),RunningProcess.id,RunningProcess.arrivaltime,RunningProcess.TimeExecution,RunningProcess.TimeRemaining,RunningProcess.TimeWait,(getClk()-RunningProcess.arrivaltime),wta);
+                float wta = ((getClk() - RunningProcess.arrivaltime) / RunningProcess.TimeRemaining);
+                fprintf(Filelog, "At time %d process %d finished arr %d total %d remain %d wait %d TA %.2f WTA %d\n", getClk(), RunningProcess.id, RunningProcess.arrivaltime, RunningProcess.TimeExecution, RunningProcess.TimeRemaining, RunningProcess.TimeWait, (getClk() - RunningProcess.arrivaltime), wta);
 
                 deleteProcessPQ(&PriotityQueue, RunningProcess);
                 //printf("after delete %d\n",(*(PeekPQ(&PriotityQueue))).id);
                 isrunning = false;
+
+                //deallocate memory for the process when finished
+                int i = 0;
+                int found = 0;
+                for (i = 0; i < 4; i++)
+                {
+                    if (MemoryArr[i] == RunningProcess.id) //get index of first available place
+                    {
+                        found = 1;
+                        MemoryArr[i] = 0;
+                        break;
+                    }
+                }
+                if (found == 1)
+                {
+                    if (i == 0)
+                    {
+                        fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 0 to 255\n", getClk(), RunningProcess.memsize, RunningProcess.id);
+                    }
+                    else if (i == 1)
+                    {
+                        fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 256 to 511\n", getClk(), RunningProcess.memsize, RunningProcess.id);
+                    }
+                    else if (i == 2)
+                    {
+                        fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 512 to 767 \n", getClk(), RunningProcess.memsize, RunningProcess.id);
+                    }
+                    else if (i == 3)
+                    {
+                        fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 768 to 1023\n", getClk(), RunningProcess.memsize, RunningProcess.id);
+                    }
+                }
             }
 
             if (rec_val != -1)
@@ -83,6 +127,42 @@ int main(int argc, char *argv[])
                 RunningProcess.TimeWait += getClk();
                 RunningProcess.TimeWait -= RunningProcess.arrivaltime;
                 printf("At time %d process %d started\n", getClk(), RunningProcess.id);
+
+                //output to file
+                fprintf(Filelog, "At time %d process %d started arr %d total %d remain %d wait %d\n", getClk(), RunningProcess.id, RunningProcess.arrivaltime, RunningProcess.TimeExecution, RunningProcess.TimeRemaining, RunningProcess.TimeWait);
+
+                //allocate memory for the process
+                int i = 0;
+                int found = 0;
+                for (i = 0; i < 4; i++)
+                {
+                    if (MemoryArr[i] == 0) //get index of first available place
+                    {
+                        found = 1;
+                        MemoryArr[i] = RunningProcess.id;
+                        break;
+                    }
+                }
+                if (found == 1)
+                {
+                    if (i == 0)
+                    {
+                        fprintf(FileMem, "At time %d allocated %d bytes for process %d from 0 to 255\n", getClk(), RunningProcess.memsize, RunningProcess.id);
+                    }
+                    else if (i == 1)
+                    {
+                        fprintf(FileMem, "At time %d allocated %d bytes for process %d from 256 to 511\n", getClk(), RunningProcess.memsize, RunningProcess.id);
+                    }
+                    else if (i == 2)
+                    {
+                        fprintf(FileMem, "At time %d allocated %d bytes for process %d from 512 to 767 \n", getClk(), RunningProcess.memsize, RunningProcess.id);
+                    }
+                    else if (i == 3)
+                    {
+                        fprintf(FileMem, "At time %d allocated %d bytes for process %d from 768 to 1023\n", getClk(), RunningProcess.memsize, RunningProcess.id);
+                    }
+                }
+
                 // printf("At time %d process %d started arr %d total %d remain %d wait %d\n", getClk(), RunningProcess.id, RunningProcess.arrivaltime, RunningProcess.TimeExecution, RunningProcess.TimeRemaining, RunningProcess.TimeWait);
                 //fprintf(Filelog,"At time %d process %d started arr %d total %d remain %d wait %d\n",getClk(),RunningProcess.id,RunningProcess.arrivaltime,RunningProcess.TimeExecution,RunningProcess.TimeRemaining,RunningProcess.TimeWait);
                 //printf("after PeekPQ %d\n", RunningProcess.id);
@@ -110,8 +190,8 @@ int main(int argc, char *argv[])
     }
     else if (AlgoUsed == SRTN)
     {
-        signal(SIGUSR1, receivedfn);     // empty handler for signal received by process generator when a process arrives
-        signal(SIGCHLD, SRTNfn); //empty handler create just to interrupt msgrcv
+        signal(SIGUSR1, receivedfn); // empty handler for signal received by process generator when a process arrives
+        signal(SIGCHLD, SRTNfn);     //empty handler create just to interrupt msgrcv
         while (1)
         {
             int sleepval = sleep(INT_MAX);
@@ -120,7 +200,7 @@ int main(int argc, char *argv[])
             int rec_val = msgrcv(msgqid, &ReceivedProcess, sizeof(struct process), 0, IPC_NOWAIT);
             if (rec_val == -1 && isrunning)
             {
-               // printf("here 1 time %d\n", getClk());
+                // printf("here 1 time %d\n", getClk());
                 //increase wait time of all processes
                 struct process *iterator = SRTNQueue;
                 while (iterator != NULL)
@@ -131,7 +211,7 @@ int main(int argc, char *argv[])
                     }
                     else
                     {
-                      //  printf("running pid rem time is %d %d  \n", iterator->TimeRemaining,RunningProcess.TimeRemaining);
+                        //  printf("running pid rem time is %d %d  \n", iterator->TimeRemaining,RunningProcess.TimeRemaining);
                     }
 
                     iterator = iterator->next;
@@ -140,18 +220,54 @@ int main(int argc, char *argv[])
                 printf("At time %d Process %d finished\n", getClk(), RunningProcess.id);
                 deleteProcessSRTN(&SRTNQueue, RunningProcess);
                 isrunning = false;
+
+                //output to file
+                float wta = ((getClk() - RunningProcess.arrivaltime) / RunningProcess.TimeRemaining);
+                fprintf(Filelog, "At time %d process %d finished arr %d total %d remain %d wait %d TA %.2f WTA %d\n", getClk(), RunningProcess.id, RunningProcess.arrivaltime, RunningProcess.TimeExecution, RunningProcess.TimeRemaining, RunningProcess.TimeWait, (getClk() - RunningProcess.arrivaltime), wta);
+
+                //deallocate memory for the process when finished
+                int i = 0;
+                int found = 0;
+                for (i = 0; i < 4; i++)
+                {
+                    if (MemoryArr[i] == RunningProcess.id) //get index of first available place
+                    {
+                        found = 1;
+                        MemoryArr[i] = 0;
+                        break;
+                    }
+                }
+                if (found == 1)
+                {
+                    if (i == 0)
+                    {
+                        fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 0 to 255\n", getClk(), RunningProcess.memsize, RunningProcess.id);
+                    }
+                    else if (i == 1)
+                    {
+                        fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 256 to 511\n", getClk(), RunningProcess.memsize, RunningProcess.id);
+                    }
+                    else if (i == 2)
+                    {
+                        fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 512 to 767 \n", getClk(), RunningProcess.memsize, RunningProcess.id);
+                    }
+                    else if (i == 3)
+                    {
+                        fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 768 to 1023\n", getClk(), RunningProcess.memsize, RunningProcess.id);
+                    }
+                }
             }
 
             if (rec_val != -1)
             {
-               // printf("here 2 time %d\n", getClk());
+                // printf("here 2 time %d\n", getClk());
                 //  isrunning = false;
                 //if not first time
                 if (!firstrun)
                 {
-                  //  printf("here 2.5time %d\n", getClk());
+                    //  printf("here 2.5time %d\n", getClk());
                     RunningProcess.TimeRemaining -= sleepval;
-                   // printf("sleepval is %d and curren rem time is %d\n", sleepval, RunningProcess.TimeRemaining);
+                    // printf("sleepval is %d and curren rem time is %d\n", sleepval, RunningProcess.TimeRemaining);
                     //decrease rem time of runnning process
                     struct process *iterator = SRTNQueue;
                     while (iterator != NULL)
@@ -165,16 +281,18 @@ int main(int argc, char *argv[])
                     }
                     if (ReceivedProcess.TimeRemaining < RunningProcess.TimeRemaining)
                     {
-                  //      printf("here 2.8 time %d\n", getClk());
-                        printf("i will stop %d\n ",RunningProcess.pid);
-                        int killval = kill(RunningProcess.pid,SIGTSTP);
-                        if(killval==0){
+                        //      printf("here 2.8 time %d\n", getClk());
+                        printf("i will stop %d\n ", RunningProcess.pid);
+                        int killval = kill(RunningProcess.pid, SIGTSTP);
+                        if (killval == 0)
+                        {
                             printf("killed oh yeah \n");
-                        }else
+                        }
+                        else
                         {
                             perror("error is \n");
                         }
-                        
+
                         isrunning = false;
                         printf("At time %d Process %d Stopped\n", getClk(), RunningProcess.id);
                     }
@@ -187,7 +305,7 @@ int main(int argc, char *argv[])
 
             if (!isrunning && !isEmptySRTN(&SRTNQueue))
             {
-               // printf("here 3 time %d\n", getClk());
+                // printf("here 3 time %d\n", getClk());
                 //  printf("Starting a process\n");
                 isrunning = true;
                 RunningProcess = *(PeekSRTN(&SRTNQueue));
@@ -196,9 +314,13 @@ int main(int argc, char *argv[])
                 //if first time running fork
                 if (RunningProcess.pid == 900)
                 {
-               //     printf("here 3.2 time %d\n", getClk());
+                    //     printf("here 3.2 time %d\n", getClk());
 
                     printf("At time %d Process %d started\n", getClk(), RunningProcess.id);
+
+                    //output to file
+                    fprintf(Filelog, "At time %d process %d started arr %d total %d remain %d wait %d\n", getClk(), RunningProcess.id, RunningProcess.arrivaltime, RunningProcess.TimeExecution, RunningProcess.TimeRemaining, RunningProcess.TimeWait);
+
                     int pid = fork();
                     if (pid == 0)
                     {
@@ -210,10 +332,42 @@ int main(int argc, char *argv[])
                     }
                     RunningProcess.pid = pid;
                     PeekSRTN(&SRTNQueue)->pid = pid;
+
+                    //allocate memory for the process
+                    int i = 0;
+                    int found = 0;
+                    for (i = 0; i < 4; i++)
+                    {
+                        if (MemoryArr[i] == 0) //get index of first available place
+                        {
+                            found = 1;
+                            MemoryArr[i] = RunningProcess.id;
+                            break;
+                        }
+                    }
+                    if (found == 1)
+                    {
+                        if (i == 0)
+                        {
+                            fprintf(FileMem, "At time %d allocated %d bytes for process %d from 0 to 255\n", getClk(), RunningProcess.memsize, RunningProcess.id);
+                        }
+                        else if (i == 1)
+                        {
+                            fprintf(FileMem, "At time %d allocated %d bytes for process %d from 256 to 511\n", getClk(), RunningProcess.memsize, RunningProcess.id);
+                        }
+                        else if (i == 2)
+                        {
+                            fprintf(FileMem, "At time %d allocated %d bytes for process %d from 512 to 767 \n", getClk(), RunningProcess.memsize, RunningProcess.id);
+                        }
+                        else if (i == 3)
+                        {
+                            fprintf(FileMem, "At time %d allocated %d bytes for process %d from 768 to 1023\n", getClk(), RunningProcess.memsize, RunningProcess.id);
+                        }
+                    }
                 }
                 else //continue it
                 {
-                  //  printf("here 3.5 time %d\n", getClk());
+                    //  printf("here 3.5 time %d\n", getClk());
 
                     printf("At time %d Process %d resumed\n", getClk(), RunningProcess.id);
                     //  printf("will resume %d\n", RunningProcess.pid);
@@ -267,6 +421,41 @@ int main(int argc, char *argv[])
                     else
                     { //process finished
                         printf("At time %d Process %d finished\n", getClk(), RunningProcess.id);
+                        //output to file
+                        float wta = ((getClk() - RunningProcess.arrivaltime) / RunningProcess.TimeRemaining);
+                        fprintf(Filelog, "At time %d process %d finished arr %d total %d remain %d wait %d TA %.2f WTA %d\n", getClk(), RunningProcess.id, RunningProcess.arrivaltime, RunningProcess.TimeExecution, RunningProcess.TimeRemaining, RunningProcess.TimeWait, (getClk() - RunningProcess.arrivaltime), wta);
+
+                        //deallocate memory for the process when finished
+                        int i = 0;
+                        int found = 0;
+                        for (i = 0; i < 4; i++)
+                        {
+                            if (MemoryArr[i] == RunningProcess.id) //get index of first available place
+                            {
+                                found = 1;
+                                MemoryArr[i] = 0;
+                                break;
+                            }
+                        }
+                        if (found == 1)
+                        {
+                            if (i == 0)
+                            {
+                                fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 0 to 255\n", getClk(), RunningProcess.memsize, RunningProcess.id);
+                            }
+                            else if (i == 1)
+                            {
+                                fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 256 to 511\n", getClk(), RunningProcess.memsize, RunningProcess.id);
+                            }
+                            else if (i == 2)
+                            {
+                                fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 512 to 767 \n", getClk(), RunningProcess.memsize, RunningProcess.id);
+                            }
+                            else if (i == 3)
+                            {
+                                fprintf(FileMem, "At time %d deallocated %d bytes for process %d from 768 to 1023\n", getClk(), RunningProcess.memsize, RunningProcess.id);
+                            }
+                        }
                     }
                     isrunning = false;
 
@@ -293,6 +482,10 @@ int main(int argc, char *argv[])
                     if (RunningProcess.pid == 900)
                     {
                         printf("At time %d Process %d started\n", getClk(), RunningProcess.id);
+
+                        //output to file
+                        fprintf(Filelog, "At time %d process %d started arr %d total %d remain %d wait %d\n", getClk(), RunningProcess.id, RunningProcess.arrivaltime, RunningProcess.TimeExecution, RunningProcess.TimeRemaining, RunningProcess.TimeWait);
+
                         int pid = fork();
                         RunningProcess.pid = pid;
                         if (pid == 0)
@@ -302,6 +495,38 @@ int main(int argc, char *argv[])
                             sprintf(temp, "%d", RunningProcess.TimeRemaining);
                             char *argv[] = {"./process.out", temp, NULL};
                             execvp(argv[0], argv); //child executes process
+                        }
+
+                        //allocate memory for the process
+                        int i = 0;
+                        int found = 0;
+                        for (i = 0; i < 4; i++)
+                        {
+                            if (MemoryArr[i] == 0) //get index of first available place
+                            {
+                                found = 1;
+                                MemoryArr[i] = RunningProcess.id;
+                                break;
+                            }
+                        }
+                        if (found == 1)
+                        {
+                            if (i == 0)
+                            {
+                                fprintf(FileMem, "At time %d allocated %d bytes for process %d from 0 to 255\n", getClk(), RunningProcess.memsize, RunningProcess.id);
+                            }
+                            else if (i == 1)
+                            {
+                                fprintf(FileMem, "At time %d allocated %d bytes for process %d from 256 to 511\n", getClk(), RunningProcess.memsize, RunningProcess.id);
+                            }
+                            else if (i == 2)
+                            {
+                                fprintf(FileMem, "At time %d allocated %d bytes for process %d from 512 to 767 \n", getClk(), RunningProcess.memsize, RunningProcess.id);
+                            }
+                            else if (i == 3)
+                            {
+                                fprintf(FileMem, "At time %d allocated %d bytes for process %d from 768 to 1023\n", getClk(), RunningProcess.memsize, RunningProcess.id);
+                            }
                         }
                     }
                     else //continue it
@@ -342,7 +567,7 @@ int main(int argc, char *argv[])
 void SRTNfn(int signum)
 {
     printf("sigchild recv\n");
-   // parrived = true;
+    // parrived = true;
 }
 void receivedfn(int signum)
 {

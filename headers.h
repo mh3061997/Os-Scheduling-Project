@@ -42,6 +42,7 @@ struct process
     int TimeWait;
     int TimeExecution;
     int TimeRemaining;
+    int memsize;
     struct process *next;
 };
 
@@ -60,6 +61,7 @@ struct process *newprocess(struct process p)
     temp->TimeWait = p.TimeWait;
     temp->TimeExecution = p.TimeExecution;
     temp->TimeRemaining = p.TimeRemaining;
+    temp->memsize=p.memsize;
     temp->next = NULL;
 
     return temp;

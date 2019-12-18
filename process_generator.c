@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
     int NumLines = 0;
     char junk[256];
     //count number of lines-1( number of process)
-    while (fscanf(fileptr, "%*s %*s %*s %s", junk) == 1)
+    while (fscanf(fileptr, "%*s %*s %*s %*s %s", junk) == 1)
     {
         NumLines++;
     }
@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
 
     rewind(fileptr); //resets ptr to beginning of file
         //fscanf stop at space of end of line or EOF
-    fscanf(fileptr, "%*s %*s %*s %*s"); // skips first comment line
+    fscanf(fileptr, "%*s %*s %*s %*s %*s"); // skips first comment line
 
     //initialize array of processes
     struct process *ProcessArr = (struct process *)malloc(sizeof(struct process) * NumProcesses);
@@ -128,6 +128,10 @@ int main(int argc, char *argv[])
 
         fscanf(fileptr, "%d", &Pdata); //read priority
         ProcessArr[i].priority = Pdata;
+
+        fscanf(fileptr, "%d", &Pdata); //read memsize
+        ProcessArr[i].memsize = Pdata;
+
         //to be updated by scheduler
         ProcessArr[i].pid = 900;
         ProcessArr[i].state = Suspended;
@@ -135,7 +139,7 @@ int main(int argc, char *argv[])
         ProcessArr[i].TimeExecution = 0;
         ProcessArr[i].next = NULL;
 
-        printf("process%d\t%d\t%d\t%d\t%d\n", i, ProcessArr[i].id, ProcessArr[i].arrivaltime, ProcessArr[i].runningtime, ProcessArr[i].priority);
+        printf("process%d\t%d\t%d\t%d\t%d\t%d\n", i, ProcessArr[i].id, ProcessArr[i].arrivaltime, ProcessArr[i].runningtime, ProcessArr[i].priority,ProcessArr[i].memsize);
     }
 
     // 6. Send the information to the scheduler at the appropriate time.
